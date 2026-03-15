@@ -1,59 +1,78 @@
 {
+  "user1": {
+    "method": "GET",
+    "path": "/api/users/:id",
+    "status": 200,
+    "params": { "id": "1" },
+    "response": { "id": 1, "name": "Alice", "email": "alice@example.com" }
+  },
+  "user2": {
+    "method": "GET",
+    "path": "/api/users/:id",
+    "status": 200,
+    "params": { "id": "2" },
+    "response": { "id": 2, "name": "Bob", "email": "bob@example.com" }
+  },
   "queryConstrained": {
     "method": "GET",
     "path": "/api/users",
     "status": 200,
-    "body": { "users": [], "page": 2 },
-    "query": { "page": "2" }
+    "query": { "page": "2" },
+    "response": {
+      "users": [{ "id": 3, "name": "John" }],
+      "metadata": { "page": "2" }
+    }
   },
   "getUsers": {
     "method": "GET",
     "path": "/api/users",
     "status": 200,
-    "body": { "users": [{ "id": 1, "name": "Alice" }] }
-  },
-  "getUserById": {
-    "method": "GET",
-    "path": "/api/users/:id",
-    "status": 200,
-    "body": { "id": "stubbed", "name": "Alice" }
+    "response": { "users": [{ "id": 1, "name": "Alice" }] }
   },
   "createUser": {
     "method": "POST",
     "path": "/api/users",
     "status": 201,
-    "body": { "created": true }
+    "body": { "name": "Alice" },
+    "response": { "created": true }
+  },
+  "createAdminUser": {
+    "method": "POST",
+    "path": "/api/users",
+    "status": 201,
+    "body": { "name": "Admin", "role": "admin" },
+    "response": { "created": true, "role": "admin" }
   },
   "slowRoute": {
     "method": "GET",
     "path": "/api/slow",
     "status": 200,
-    "body": { "message": "slow" },
+    "response": { "message": "slow" },
     "delay": 100
   },
   "customHeaders": {
     "method": "GET",
     "path": "/api/headers",
     "status": 200,
-    "body": { "ok": true },
+    "response": { "ok": true },
     "headers": { "X-Custom-Header": "test-value", "X-Request-Id": "abc123" }
   },
   "stringBody": {
     "method": "GET",
     "path": "/api/text",
     "status": 200,
-    "body": "plain text response"
+    "response": "plain text response"
   },
   "emptyBody": {
     "method": "DELETE",
     "path": "/api/users/:id",
     "status": 204,
-    "body": null
+    "response": null
   },
   "wildcardApi": {
     "method": "GET",
     "path": "/api/*",
     "status": 200,
-    "body": { "message": "wildcard matched" }
+    "response": { "message": "wildcard matched" }
   }
 }

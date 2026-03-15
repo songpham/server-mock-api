@@ -25,6 +25,7 @@ function writeTempRaw(content) {
 describe('loadRoutes', () => {
   let exitSpy;
   let errorSpy;
+  let logSpy;
 
   beforeEach(() => {
     // Intercept process.exit so it throws instead of killing the test process
@@ -34,7 +35,7 @@ describe('loadRoutes', () => {
     // Suppress console.error output in tests
     errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     // Suppress console.log (startup route table) in tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -49,9 +50,11 @@ describe('loadRoutes', () => {
     const loadRoutes = getLoadRoutes();
     const routes = loadRoutes(FIXTURE_PATH);
     expect(routes).toHaveProperty('getUsers');
-    expect(routes).toHaveProperty('getUserById');
+    expect(routes).toHaveProperty('user1');
+    expect(routes).toHaveProperty('user2');
     expect(routes.getUsers.method).toBe('GET');
     expect(routes.getUsers.status).toBe(200);
+    expect(routes.getUsers.response).toBeDefined();
   });
 
   test('exits with code 1 when mock-routes.json is missing', () => {
@@ -88,11 +91,11 @@ describe('loadRoutes', () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  test('exits with code 1 when duplicate method+path+query signature detected', () => {
+  test('exits with code 1 when duplicate method+path+params+query+body signature detected', () => {
     const loadRoutes = getLoadRoutes();
     const tmpFile = writeTempJson({
-      first:  { method: 'GET', path: '/api/dup', status: 200, body: {} },
-      second: { method: 'GET', path: '/api/dup', status: 200, body: { other: true } },
+      first:  { method: 'POST', path: '/api/dup', status: 200, body: { kind: 'a' }, response: {} },
+      second: { method: 'POST', path: '/api/dup', status: 200, body: { kind: 'a' }, response: { other: true } },
     });
     expect(() => loadRoutes(tmpFile)).toThrow('process.exit(1)');
     expect(exitSpy).toHaveBeenCalledWith(1);
@@ -105,5 +108,57 @@ describe('loadRoutes', () => {
     expect(routes).toHaveProperty('queryConstrained');
     expect(routes).toHaveProperty('getUsers');
     expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  test('accepts routes with same method+path but different params constraints (not a duplicate)', () => {
+    const loadRoutes = getLoadRoutes();
+    const routes = loadRoutes(FIXTURE_PATH);
+    expect(routes).toHaveProperty('user1');
+    expect(routes).toHaveProperty('user2');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  test('accepts routes with same method+path but different body constraints (not a duplicate)', () => {
+    const loadRoutes = getLoadRoutes();
+    const routes = loadRoutes(FIXTURE_PATH);
+    expect(routes).toHaveProperty('createUser');
+    expect(routes).toHaveProperty('createAdminUser');
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  test('startup log includes route guard details for query, params, and body matchers', () => {
+    const loadRoutes = getLoadRoutes();
+
+    loadRoutes(FIXTURE_PATH);
+
+    const outputLines = logSpy.mock.calls.map(([line]) => line);
+    expect(outputLines).toEqual(expect.arrayContaining([
+      expect.stringContaining('→ queryConstrained [query={"page":"2"}]'),
+      expect.stringContaining('→ user1'),
+      expect.stringContaining('[params={"id":"1"}]'),
+      expect.stringContaining('→ createUser'),
+      expect.stringContaining('[body={"name":"Alice"}]'),
+    ]));
+  });
+
+  test('exits with code 1 when params is not an object', () => {
+    const loadRoutes = getLoadRoutes();
+    const tmpFile = writeTempJson({ badRoute: { method: 'GET', path: '/api/x/:id', status: 200, params: '1' } });
+    expect(() => loadRoutes(tmpFile)).toThrow('process.exit(1)');
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test('exits with code 1 when headers is not an object', () => {
+    const loadRoutes = getLoadRoutes();
+    const tmpFile = writeTempJson({ badRoute: { method: 'GET', path: '/api/x', status: 200, headers: 'bad' } });
+    expect(() => loadRoutes(tmpFile)).toThrow('process.exit(1)');
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test('exits with code 1 when delay is negative', () => {
+    const loadRoutes = getLoadRoutes();
+    const tmpFile = writeTempJson({ badRoute: { method: 'GET', path: '/api/x', status: 200, delay: -1 } });
+    expect(() => loadRoutes(tmpFile)).toThrow('process.exit(1)');
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });

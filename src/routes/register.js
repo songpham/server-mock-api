@@ -16,14 +16,51 @@ function registerRoutes(app, routes) {
   }
 }
 
+function matchesGuard(actualValues, expectedValues) {
+  if (!expectedValues) {
+    return true;
+  }
+
+  if (expectedValues === null || typeof expectedValues !== 'object') {
+    return actualValues === expectedValues;
+  }
+
+  if (Array.isArray(expectedValues)) {
+    if (!Array.isArray(actualValues) || actualValues.length !== expectedValues.length) {
+      return false;
+    }
+
+    return expectedValues.every((expectedItem, index) => matchesGuard(actualValues[index], expectedItem));
+  }
+
+  if (actualValues === null || typeof actualValues !== 'object' || Array.isArray(actualValues)) {
+    return false;
+  }
+
+  for (const [key, val] of Object.entries(expectedValues)) {
+    if (!matchesGuard(actualValues[key], val)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function getRequestBodyGuard(config) {
+  return config.response === undefined ? undefined : config.body;
+}
+
+function getResponsePayload(config) {
+  return config.response === undefined ? config.body : config.response;
+}
+
 /**
  * Builds an async Express handler for a single route config.
  *
- * Query guard: if config.query is set, ALL specified key/value pairs must match
- * req.query. If any mismatch, calls next() (NOT next(err)) to fall through to
- * the next registered handler for the same path. This enables query-param
- * demultiplexing: multiple handlers on the same method+path, each with different
- * query constraints, stacked in registration order.
+ * Guards: if config.params, config.query, or config.body are set, ALL specified
+ * values must match req.params, req.query, and req.body. Request-body matching is
+ * enabled when a route defines config.response; legacy routes can still use body
+ * as the response payload when response is omitted.
  *
  * Body type branching (verbatim — no :param substitution):
  *   null / undefined  → res.status(n).end()
@@ -32,13 +69,13 @@ function registerRoutes(app, routes) {
  */
 function makeHandler(name, config) {
   return async function mockHandler(req, res, next) {
-    // Query param guard — call next() if any required pair doesn't match
-    if (config.query) {
-      for (const [key, val] of Object.entries(config.query)) {
-        if (req.query[key] !== val) {
-          return next();
-        }
-      }
+    // Request signature guards — fall through if any required part doesn't match
+    if (
+      !matchesGuard(req.params, config.params) ||
+      !matchesGuard(req.query, config.query) ||
+      !matchesGuard(req.body, getRequestBodyGuard(config))
+    ) {
+      return next();
     }
 
     // Simulate network latency
@@ -51,15 +88,16 @@ function makeHandler(name, config) {
       res.set(config.headers);
     }
 
-    // Send response — branch on body type
-    const { status, body } = config;
-    if (body === null || body === undefined) {
+    // Send response — branch on response payload type
+    const { status } = config;
+    const response = getResponsePayload(config);
+    if (response === null || response === undefined) {
       return res.status(status).end();
     }
-    if (typeof body === 'string') {
-      return res.status(status).send(body);
+    if (typeof response === 'string') {
+      return res.status(status).send(response);
     }
-    return res.status(status).json(body);
+    return res.status(status).json(response);
   };
 }
 

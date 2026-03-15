@@ -1,0 +1,63 @@
+{
+  "getUsersPage2": {
+    "method": "GET",
+    "path": "/api/users",
+    "query": { "page": "2" },
+    "status": 200,
+    "response": {
+      "users": [{ "id": 3, "name": "John" }],
+      "metadata": { "page": "2" }
+    }
+  },
+  "getUsers": {
+    "method": "GET",
+    "path": "/api/users",
+    "status": 200,
+    "response": { "users": [{ "id": 1, "name": "Alice" }, { "id": 2, "name": "Bob" }] }
+  },
+  "getUser1": {
+    "method": "GET",
+    "path": "/api/users/:id",
+    "params": { "id": "1" },
+    "status": 200,
+    "response": { "id": 1, "name": "Alice", "email": "alice@example.com" }
+  },
+  "getUser2": {
+    "method": "GET",
+    "path": "/api/users/:id",
+    "params": { "id": "2" },
+    "status": 200,
+    "response": { "id": 2, "name": "Bob", "email": "bob@example.com" }
+  },
+  "createUser": {
+    "method": "POST",
+    "path": "/api/users",
+    "body": { "name": "New User" },
+    "status": 201,
+    "response": { "id": 3, "name": "New User" },
+    "headers": { "X-Request-Id": "mock-001" }
+  },
+  "updateUser": {
+    "method": "PUT",
+    "path": "/api/users/:id",
+    "params": { "id": "4" },
+    "body": { "name": "New Users" },
+    "status": 201,
+    "response": { "id": 4, "name": "New Users" },
+    "headers": { "X-Request-Id": "mock-001" }
+  },
+  "deleteUser": {
+    "method": "DELETE",
+    "path": "/api/users/:id",
+    "params": { "id": "1" },
+    "status": 201,
+    "response": { "message": "delete sucessfully" }
+  },
+  "slowEndpoint": {
+    "method": "GET",
+    "path": "/api/reports/:id",
+    "status": 200,
+    "response": { "report": "data" },
+    "delay": 800
+  }
+}

@@ -3,6 +3,42 @@
 const fs = require('fs');
 const { validateRoute } = require('../utils/validateRoute');
 
+function getRequestBodyGuard(config) {
+  return config.response === undefined ? undefined : config.body;
+}
+
+function buildRouteSignature(config) {
+  return [
+    config.method.toUpperCase(),
+    config.path,
+    JSON.stringify(config.params || {}),
+    JSON.stringify(config.query || {}),
+    JSON.stringify(getRequestBodyGuard(config) || {}),
+  ].join(':');
+}
+
+function formatGuardDisplay(label, value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return `${label}=${JSON.stringify(value)}`;
+}
+
+function buildRouteLogLine(name, config, routeNameWidth) {
+  const method = config.method.toUpperCase().padEnd(6);
+  const routePath = config.path.padEnd(35);
+  const routeName = name.padEnd(routeNameWidth);
+  const guards = [
+    formatGuardDisplay('query', config.query),
+    formatGuardDisplay('params', config.params),
+    formatGuardDisplay('body', getRequestBodyGuard(config)),
+  ].filter(Boolean);
+  const guardSuffix = guards.length > 0 ? ` [${guards.join('; ')}]` : '';
+
+  return `[MOCK] ${method} ${routePath} → ${routeName}${guardSuffix}`;
+}
+
 /**
  * Reads, parses, and validates mock-routes.json.
  * Calls process.exit(1) on any error with a clear console.error message.
@@ -40,10 +76,10 @@ function loadRoutes(filePath) {
     }
   }
 
-  // Duplicate detection: method + path + serialised query signature
+  // Duplicate detection: method + path + serialised request signature
   const seen = new Map();
   for (const [name, config] of Object.entries(routes)) {
-    const key = `${config.method.toUpperCase()}:${config.path}:${JSON.stringify(config.query || {})}`;
+    const key = buildRouteSignature(config);
     if (seen.has(key)) {
       console.error(`[MOCK] Duplicate route signature detected: ${key}`);
       console.error(`  First defined as: "${seen.get(key)}"`);
@@ -54,10 +90,9 @@ function loadRoutes(filePath) {
   }
 
   // Print per-route startup log
+  const routeNameWidth = Math.max(...Object.keys(routes).map((name) => name.length));
   for (const [name, config] of Object.entries(routes)) {
-    const method = config.method.toUpperCase().padEnd(6);
-    const p = config.path.padEnd(35);
-    console.log(`[MOCK] ${method} ${p} → ${name}`);
+    console.log(buildRouteLogLine(name, config, routeNameWidth));
   }
 
   return routes;
