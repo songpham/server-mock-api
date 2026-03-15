@@ -1,0 +1,59 @@
+{
+  "queryConstrained": {
+    "method": "GET",
+    "path": "/api/users",
+    "status": 200,
+    "body": { "users": [], "page": 2 },
+    "query": { "page": "2" }
+  },
+  "getUsers": {
+    "method": "GET",
+    "path": "/api/users",
+    "status": 200,
+    "body": { "users": [{ "id": 1, "name": "Alice" }] }
+  },
+  "getUserById": {
+    "method": "GET",
+    "path": "/api/users/:id",
+    "status": 200,
+    "body": { "id": "stubbed", "name": "Alice" }
+  },
+  "createUser": {
+    "method": "POST",
+    "path": "/api/users",
+    "status": 201,
+    "body": { "created": true }
+  },
+  "slowRoute": {
+    "method": "GET",
+    "path": "/api/slow",
+    "status": 200,
+    "body": { "message": "slow" },
+    "delay": 100
+  },
+  "customHeaders": {
+    "method": "GET",
+    "path": "/api/headers",
+    "status": 200,
+    "body": { "ok": true },
+    "headers": { "X-Custom-Header": "test-value", "X-Request-Id": "abc123" }
+  },
+  "stringBody": {
+    "method": "GET",
+    "path": "/api/text",
+    "status": 200,
+    "body": "plain text response"
+  },
+  "emptyBody": {
+    "method": "DELETE",
+    "path": "/api/users/:id",
+    "status": 204,
+    "body": null
+  },
+  "wildcardApi": {
+    "method": "GET",
+    "path": "/api/*",
+    "status": 200,
+    "body": { "message": "wildcard matched" }
+  }
+}
